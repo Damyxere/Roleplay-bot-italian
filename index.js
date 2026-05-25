@@ -1,6 +1,7 @@
 const { Client, GatewayIntentBits, Collection, REST, Routes, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+const http = require('http'); // Modulo nativo per sbloccare la porta di Render
 const db = require('./firebase'); // Connessione nativa a Firebase
 
 // Inizializzazione del Client Discord con i permessi corretti
@@ -178,6 +179,17 @@ client.on('interactionCreate', async (interaction) => {
             }
         }
     }
+});
+
+// 📡 APERTURA PORTA WEB FINTA PER ENGAGEMENT DI RENDER (Previene il Port Scan Timeout)
+const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Scorpion OS Engine — Online & Running\n');
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`📡 Ping Web Server attivo sulla porta di Render: ${PORT}`);
 });
 
 // ACCENSIONE IN SICUREZZA
