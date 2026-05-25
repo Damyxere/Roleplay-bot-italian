@@ -1,9 +1,7 @@
 
-
 const admin = require('firebase-admin');
 
-// ⚠️ Questo blocco serve a non far crashare il bot se non hai ancora messo le chiavi vere
-// Se hai le tue chiavi vere scaricate da Firebase, incollale dentro le parentesi graffe qui sotto!
+// ⚠️ Inserisci qui le tue credenziali reali quando le scaricherai dalla console di Firebase!
 const serviceAccount = {
   "type": "service_account",
   "project_id": "roleplay-bot-italian",
@@ -12,17 +10,36 @@ const serviceAccount = {
   
 };
 
-// Inizializzazione sicura del database
-try {
-    if (!admin.apps.length) {
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount)
-        });
+let db;
+
+// CONTROLLO REALE CHIAVI
+if (serviceAccount.project_id === "progetto-placeholder") {
+    console.log("⚠️ MODALITÀ PROVVISORIA ATTIVA: Chiavi Firebase non inserite.");
+    console.log("🤖 ATTIVAZIONE SIMULATORE DATABASE EMULATO PER EVITARE IL CRASH.");
+    
+    // Creiamo un oggetto finto (Mock) che risponde ai comandi senza crashare
+    db = {
+        collection: () => ({
+            doc: () => ({
+                get: async () => ({ exists: false, data: () => ({}) }),
+                set: async () => true,
+                update: async () => true
+            })
+        })
+    };
+} else {
+    // Se le chiavi sono state cambiate, avvia Firebase vero
+    try {
+        if (!admin.apps.length) {
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount)
+            });
+        }
+        db = admin.firestore();
+        console.log("🔥 Connessione reale a Firebase stabilita con successo!");
+    } catch (error) {
+        console.error("❌ Errore durante l'inizializzazione dei servizi Firebase:", error);
     }
-    console.log("🔥 Modulo Firebase caricato nel motore Scorpion OS!");
-} catch (error) {
-    console.log("⚠️ Attenzione: Firebase inizializzato in modalità provvisoria (chiavi non valide).");
 }
 
-const db = admin.firestore();
 module.exports = db;
