@@ -1,4 +1,10 @@
-{
+
+
+const admin = require('firebase-admin');
+
+// Incolla qui dentro ESATTAMENTE i dati del file JSON che hai scaricato
+const serviceAccount = {
+  
   "type": "service_account",
   "project_id": "roleplay-bot-italian",
   "private_key_id": "2826a53926fea2e87e23e8f0fe331f5a82bd13bf",
@@ -10,4 +16,13 @@
   "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40roleplay-bot-italian.iam.gserviceaccount.com",
   "universe_domain": "googleapis.com"
+};
+
+if (!admin.apps.length) {
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+    });
 }
+
+const db = admin.firestore();
+module.exports = db;
