@@ -1,45 +1,13 @@
-
-const admin = require('firebase-admin');
-
-// ⚠️ Inserisci qui le tue credenziali reali quando le scaricherai dalla console di Firebase!
-const serviceAccount = {
+{
   "type": "service_account",
   "project_id": "roleplay-bot-italian",
-  "private_key_id": "03807ac2e9095831d98c58177d2e54ae2b10f825",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDNb5JXQKDSgEld\nQQRFJpx6/GeXl2t2xjnfr8qqqN4J66S+gBvFHo+8gFuc8nqjMUPbZalDIH/dazAS\nTVYqShXiPROOHw7lbqI+/fckoxN4iJwwoOnkYi8K1ZG7v55OW4tNuYPU1Q8HHtrV\n6wPqDCiNy4xnrUv2S+9ctsHse3jgci7Gen42J2qqsTqXtZRnysglg0whE6XrT0e3\nqBHCI/GNMfywPjQ73Irp3wfA0VqVWybtCSO0cw3DF+EerzSm71hHyJJ4hRB4VGB9\n2i5AvYLATqHFAzCtEzv0A4tazCxLoleze3sPRHQlv6XRn8sr5atfU5apBS2wwqTf\nBWG0fjNTAgMBAAECggEARWhSqwP80eHh543V4X8gEzU/0qmn9yMV3otID8yp5/Qj\nXvFtcHXY3jkHusj5wjUc1f1M6I8MZESYozZZzEPnjN5RwwyfPcjZLCsl2sz2AR02\nl/9lxnGdry1k5WfiFls7f3EUJ04sm51DFk8mrWaaNP32W/ji1z3kixB8CGfW+Q0/\ntDDHejH8fJKXvreABjt48tmE3FIakLuW9B01qoo4UA/S9ASbsaXMj4SZWPFO57+d\nTXXQ7eWOE+3V11rjcLweXNOKZlgSt8UEY8blq0yZj6ukqjsMS7J4nYn286mpVKOJ\npd9SThaxlZb2d8WD1bny9w8LkWyDai4GKCivKTw9YQKBgQDxItnB6TZKIHdZbAfx\nBst+5N5Xl1gV9gbIFnzebZ5ic+VQzg823yycrF40F2c8oun3w5foqK1TCbSzpXKt\nt34Lujy6TUQoPXbINrs0tGHOOXDQKnr7el527n4euJpAV76HPAXjEN1aFhoaYyga\n46DUT+eJqrzIMOC6wfIlapGoyQKBgQDaGV31c1VEWgwjPgwK87izG6odd+qbvc7l\nVH1KmGPzYdApsz965X3Xv76OdWEN6QZdX4+528MvpHYwEqEPC2F+NhI/O0u3dt/E\nP95T9XOJGQoG55sd4YirZpBPUTuNfWUp6kGWRC2HM1249AF8Zuj2Z24OJN/7+qbI\nrMce8i1lOwKBgQCpI0ncowlqi0VL2uPjI2H/mud+RvEJTm3JUUS6++bZpfNWb4Lq\neTYgmyLkpPnL5XX5TR+zmQUiNq+iRs2enhNyhGpuPx4sn5g+rW04dcIY1d+UlAd5\nd4blIzohsFi6AxHoZ6i1cbHhq5kZoy2RVtMLuRRuUu1h+i7XsIx5xDtxSQKBgHcm\nvKpH5CF/gHoQf8vL8vAHAR0wUj/bppirW/fQ4Wop2euuPdQKZIHmA1kYz3kmAZAp\nkP/dC/mPQ/Jnew4ZDZ5CNB3Pa0JD82Pn8LK1ufUAdPXoulnMyTm6wsRSgNJ/2zDX\nBhXuEWF3spBE3jr0jflv8DRR+PxUp6GiovZJIHvZAoGBAIh2O4PGZ8ia6anuFfSn\nKJqVkeQ4Cnp3Xw7yOeGHj/Ta0TPZKHAisAU3idHgQdayJ3CqP+EULplLYnzZ2yKv\nilGinrMmrM4681UmWkKzlUY8P/DvoTcUrYWqCaK2oIr/S4MII2vknnwEwtPUByTH\n3Vjv/SDBS3GBPWWyMOq5CKZy\n-----END PRIVATE KEY-----\n",
-  
-};
-
-let db;
-
-// CONTROLLO REALE CHIAVI
-if (serviceAccount.project_id === "progetto-placeholder") {
-    console.log("⚠️ MODALITÀ PROVVISORIA ATTIVA: Chiavi Firebase non inserite.");
-    console.log("🤖 ATTIVAZIONE SIMULATORE DATABASE EMULATO PER EVITARE IL CRASH.");
-    
-    // Creiamo un oggetto finto (Mock) che risponde ai comandi senza crashare
-    db = {
-        collection: () => ({
-            doc: () => ({
-                get: async () => ({ exists: false, data: () => ({}) }),
-                set: async () => true,
-                update: async () => true
-            })
-        })
-    };
-} else {
-    // Se le chiavi sono state cambiate, avvia Firebase vero
-    try {
-        if (!admin.apps.length) {
-            admin.initializeApp({
-                credential: admin.credential.cert(serviceAccount)
-            });
-        }
-        db = admin.firestore();
-        console.log("🔥 Connessione reale a Firebase stabilita con successo!");
-    } catch (error) {
-        console.error("❌ Errore durante l'inizializzazione dei servizi Firebase:", error);
-    }
+  "private_key_id": "2826a53926fea2e87e23e8f0fe331f5a82bd13bf",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDJD57YZF4Rhl58\nbslyZLdyozHSMlQu8zj+80y9eerwAY9ZPFBfgZtT8m26kh98YBfBLQoSLqrWfneN\nCFxq4aDCfI+JqVu/iNkdr/g68+jkHNIC9JQ8IGPBktlqO71pWilzzs6CD4wxGoBC\nSScBTGAGeMQwjBoUSpU48mmL/aYAhucNalCtjRKqEJ7beiV0XK4HP5y9yizNLzdV\nCD7Zmr3BZnHyWPvp6vNQ/lYQH2sAaAmBddGpf6DNbZLvcIZqFv7Q6aC7+cuLP34P\nIPvKADA8VKwWDCOO1jvco8YAZo+gkCdohklrZ1euat3zcVJPMzHcV7rnbIVBs5Gk\nnHVXeJHtAgMBAAECggEABJ1pa7WYDCZtpkUDti62IDk7NEQn9wDpqr5qYUH6YMJk\naCuwe5S1vD5JAvqGIvxwpyQxwjuUe8Jg25mYx3JA1p31zHbY7oNFWn9WvwGos42u\ny1cSTPQAXinQ+DWBUjj50Rjq2ATj1p+xWHQl40t9u8BLXoLkuVkB5lH4Fri+de4Y\nVExDmlhEqpvCrxXsgNeMKwpSvbZ9CpIv3/ibpSAjSP3sCOLUvHXFtNhhrrqYcppU\nYCWY9km6d3VNOWLUw2ryEcTEV6z8oxZyD2ACSOJXjV2jLcVTdag8CYrAAbIOApPz\nOx+aipfitMwpL26k4M+AEqQeMt6cYlQWFCrNwh7IyQKBgQDtCBFgFHLs6CDIJY4l\nJgstXEfTNekV6JSeVkAP4X2atJICIoiT7MD7pPgnHrX5Man30re+DVSdWoSEEZIO\nFg3Q3RYdgF6F8SJjfGY5ZbBaUrFC9rfVBPtPfCfpZTuOQRRUz51XExNK4apgC0la\nnHMv5sT6hPmFwy3HkJJQlpvuBQKBgQDZJqUoJQ7p1MEzcd9OrFYuU36cTFFz+Uj1\n+WGrjAqEVL11E95BZIHL/+j99CFMgODgHtBEjrvMEIpnixt/j7FIChAqG8S+YLR1\nLzPRg4/LEhFB00xwaHdKL8MeQ5j+oKDpr/SeaRqas9eusQC60o17kxbMo9Ub1xvS\noSR+By7wyQKBgQC7zNmfa3RHGf/nNEI0UrkmXmgWAy/DCPy/mwy0yG7xJUJN6LiX\no0yf1Ow8aou5fczyKoUkUoGJDs/Rp+41tOmLY7AC/dNmglBBzK1dqqEYX05NBRdP\n8tt+9ZrVxDx0kEGglMJP3DA78yI/aJHc9foZqNjGuJbOkX7zECutKDcxVQKBgEVc\nD6K7+4B6wV8yPxZ8+2X+q1E3G0lE1aYjiqvlpjJQctdjijku5jqHuh7rjHtIKwvL\nK9DKGnf6zIp4J0deWUzeUf1xMy1v7BQGCLIiKJq/YZ255Q9+fqPGj7cp9kNWgS9D\nUYoLnkDNstWMmeQSfrh66exhZB9pXOyxJdvPZZHpAoGAd0PaXUJujx2nWsu77vY9\nGJnhubzjAy+v4nNa4+4dSn6sWxmAngnEbS3ogGYDwN9/crF8RpxZfwtz8ZScKwWN\n4jHtFXFNihwnDcau9gOfFCeBfTfq3k16zQlHSz1byxyz9kdQzs8kqOVBFGRg3R8K\nD/IXX8Gpf0sf0IEp/kUZa7g=\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@roleplay-bot-italian.iam.gserviceaccount.com",
+  "client_id": "105572112829507681413",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40roleplay-bot-italian.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
 }
-
-module.exports = db;
