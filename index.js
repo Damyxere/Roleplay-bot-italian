@@ -1,19 +1,17 @@
+// 1. DISINNESCO PORT TIMEOUT (Keep-alive per Render Web Service)
 const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('⚡ Scorpion OS Online!'));
 app.listen(port, () => console.log(`🌍 [Scorpion OS] Server web di keep-alive attivo sulla porta ${port}`));
 
-// DA QUI IN POI LASCIA IL TUO VECCHIO CODICE DI INDEX.JS
+// 2. IMPORTAZIONI CORE DI DISCORD E NODE
 const fs = require('node:fs');
 const path = require('node:path');
-// ... tutto il resto del codice che avevi prima ...
-const fs = require('node:fs');
-const path = require('node:path');
-const { Client, Collection, GatewayIntentBits, EmbedBuilder } = require('discord.js');
-require('dotenv').config(); // Carica le variabili locali se presenti, altrimenti usa Render
+const { Client, Collection, GatewayIntentBits } = require('discord.js');
+require('dotenv').config();
 
-// 1. Inizializzazione del Client di Discord con i permessi (Intent) necessari
+// 3. INIZIALIZZAZIONE CLIENT DISCORD
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -23,10 +21,10 @@ const client = new Client({
     ]
 });
 
-// Creiamo una collezione per memorizzare i comandi caricati
+// Collezione centrale per memorizzare i comandi
 client.commands = new Collection();
 
-// 2. SCANSIONE AUTOMATICA DELLE SOTTO-CARTELLE DEI COMANDI
+// 4. CARICAMENTO AUTOMATICO DEI COMANDI DALLE SOTTO-CARTELLE
 const foldersPath = path.join(__dirname, 'commands');
 
 if (fs.existsSync(foldersPath)) {
@@ -35,7 +33,7 @@ if (fs.existsSync(foldersPath)) {
     for (const folder of commandFolders) {
         const folderPath = path.join(foldersPath, folder);
         
-        // Verifichiamo che sia effettivamente una cartella e non un file volante
+        // Controlla che sia effettivamente una cartella
         if (fs.lstatSync(folderPath).isDirectory()) {
             const commandFiles = fs.readdirSync(folderPath).filter(file => file.endsWith('.js'));
             
@@ -43,72 +41,66 @@ if (fs.existsSync(foldersPath)) {
                 const filePath = path.join(folderPath, file);
                 const command = require(filePath);
                 
-                // Verifichiamo che il comando abbia la struttura corretta prima di caricarlo
                 if ('data' in command && 'execute' in command) {
                     client.commands.set(command.data.name, command);
-                    console.log(`📡 [Scorpion OS] Comando caricato con successo: /${command.data.name} (da ${folder})`);
+                    console.log(`📡 [Scorpion OS] Comando caricato: /${command.data.name} (Categoria: ${folder})`);
                 } else {
-                    console.warn(`⚠️ [ATTENZIONE] Il comando in ${filePath} non ha le proprietà "data" o "execute" richieste.`);
+                    console.warn(`⚠️ [ATTENZIONE] Il file ${file} in ${folder} non ha la struttura corretta.`);
                 }
             }
         }
     }
 } else {
-    console.error("❌ [ERRORE CRITICO] La cartella 'commands' non esiste nella root del progetto!");
+    console.error("❌ [ERRORE] La cartella 'commands' non esiste nella root!");
 }
 
-// 3. EVENTO: ACCENSIONE DEL BOT
+// 5. EVENTO: ACCENSIONE DEL BOT
 client.once('ready', () => {
-    console.log(`🟢 [Scorpion OS] ONLINE! Autenticato come: ${client.user.tag}`);
-    
-    // Impostiamo uno status personalizzato ed elegante per il bot
-    client.user.setActivity('Scorpion OS v2.0 • In ascolto', { type: 3 }); // Type 3 = Watching
+    console.log(`🟢 [Scorpion OS] PRONTO! Autenticato come: ${client.user.tag}`);
+    client.user.setActivity('Scorpion OS v2.0', { type: 3 }); // In ascolto
 });
 
-// 4. EVENTO CENTRALE: GESTIONE DELLE INTERAZIONI (Comandi, Menu, Modal)
+// 6. GESTIONE CENTRALE DELLE INTERAZIONI (Comandi, Menu, Modal)
 client.on('interactionCreate', async interaction => {
     
-    // CASO A: ESECUZIONE DEI COMANDI SLASH (/)
+    // GESTIONE COMANDI SLASH (/)
     if (interaction.isChatInputCommand()) {
         const command = client.commands.get(interaction.commandName);
 
         if (!command) {
-            return interaction.reply({ content: '❌ Questo comando non è registrato nel core dello Scorpion OS.', ephemeral: true });
+            return interaction.reply({ content: '❌ Comando non trovato.', ephemeral: true });
         }
 
         try {
             await command.execute(interaction);
         } catch (error) {
-            console.error(`Errore durante l'esecuzione di /${interaction.commandName}:`, error);
+            console.error(`Errore su /${interaction.commandName}:`, error);
+            const errorMessage = { content: '❌ Si è verificato un errore durante l\'esecuzione.', ephemeral: true };
             if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({ content: '❌ Si è verificato un errore interno durante l\'elaborazione del comando.', ephemeral: true });
+                await interaction.followUp(errorMessage);
             } else {
-                await interaction.reply({ content: '❌ Si è verificato un errore interno durante l\'elaborazione del comando.', ephemeral: true });
+                await interaction.reply(errorMessage);
             }
         }
     }
 
-    // CASO B: GESTIONE DEI MENU A TENDINA (Select Menus)
+    // GESTIONE MENU A TENDINA (Select Menus)
     else if (interaction.isStringSelectMenu()) {
-        // Qui intercettiamo le selezioni dei menu dinamici di /attivita o /database_polizia
-        console.log(`🎛️ Menu cliccato: ${interaction.customId} | Valore selezionato: ${interaction.values[0]}`);
-        
-        // I controlli specifici per aprire i Modal verranno iniettati o gestiti qui
+        console.log(`🎛️ Menu cliccato: ${interaction.customId} | Scelta: ${interaction.values[0]}`);
+        // Logica smistamento menu per concessionario/polizia
     }
 
-    // CASO C: GESTIONE DEI MODAL SUBMIT (Invio dei Moduli Pop-up)
+    // GESTIONE MODAL SUBMIT (Invio moduli pop-up)
     else if (interaction.isModalSubmit()) {
-        // Qui gestiamo i dati inviati dai player (es. dati immatricolazione auto, multe, patenti)
-        console.log(`📩 Modal inviato: ${interaction.customId}`);
-        
-        // La logica di scrittura dei dati su Firebase andrà qui
+        console.log(`📩 Modal ricevuto: ${interaction.customId}`);
+        // Logica scrittura dati ricevuti su Firebase
     }
 });
 
-// 5. AUTENTICAZIONE FINALE TRAMITE VARIABILE D'AMBIENTE DI RENDER
+// 7. LOGIN SICURO CON CONTROLLO VARIABILE
 const TOKEN = process.env.DISCORD_TOKEN;
 if (!TOKEN) {
-    console.error("❌ [ERRORE CRITICO] Il DISCORD_TOKEN non è configurato nelle variabili d'ambiente!");
+    console.error("❌ [ERRORE] DISCORD_TOKEN mancante nelle variabili d'ambiente di Render!");
     process.exit(1);
 }
 
