@@ -50,31 +50,32 @@ if (fs.existsSync(foldersPath)) {
     }
 }
 
-// 5. EVENTO: ACCENSIONE DEL BOT + AUTO DEPLOY GLOBALE INTERNO
+// 5. EVENTO: ACCENSIONE DEL BOT + AUTO DEPLOY PRIVATO ISTANTANEO
 client.once('ready', async () => {
     console.log(`🟢 [Scorpion OS] PRONTO! Autenticato come: ${client.user.tag}`);
     client.user.setActivity('Scorpion OS v2.0', { type: 3 });
 
-    // --- AUTO DEPLOY GLOBALE DA RENDER ---
+    // --- AUTO DEPLOY PRIVATO SUL TUO SERVER ---
     const token = process.env.DISCORD_TOKEN;
     const clientId = process.env.CLIENT_ID;
+    const guildId = process.env.GUILD_ID; // Riprende l'ID del tuo server dalle impostazioni di Render
 
-    if (token && clientId) {
+    if (token && clientId && guildId) {
         try {
-            console.log(`⏳ [Auto-Deploy Globale] Sincronizzazione di ${deployCommandsArray.length} comandi in corso a livello globale...`);
+            console.log(`⏳ [Auto-Deploy Privato] Sincronizzazione istantanea di ${deployCommandsArray.length} comandi sul server ${guildId}...`);
             const rest = new REST().setToken(token);
             
-            // AGGIORNAMENTO GLOBALE (Valido per tutti i server)
+            // AGGIORNAMENTO PRIVATO (Istantaneo sul tuo server)
             await rest.put(
-                Routes.applicationCommands(clientId),
+                Routes.applicationGuildCommands(clientId, guildId),
                 { body: deployCommandsArray },
             );
-            console.log('✅ [Auto-Deploy Globale] Tutti i comandi Slash sono stati registrati GLOBALMENTE!');
+            console.log('✅ [Auto-Deploy Privato] Tutti i comandi Slash sono attivi e aggiornati sul tuo server!');
         } catch (deployError) {
-            console.error('❌ [Auto-Deploy Errore] Impossibile registrare i comandi globali:', deployError);
+            console.error('❌ [Auto-Deploy Errore] Impossibile registrare i comandi privati:', deployError);
         }
     } else {
-        console.warn('⚠️ [Auto-Deploy] Saltato: Mancano DISCORD_TOKEN o CLIENT_ID nelle impostazioni di Render.');
+        console.warn('⚠️ [Auto-Deploy] Saltato: Assicurati di rimettere GUILD_ID su Render.');
     }
 });
 
