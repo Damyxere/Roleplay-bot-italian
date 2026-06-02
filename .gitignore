@@ -1,0 +1,5 @@
+# Moduli scaricati da Node.js (Render li scaricherà da solo online)
+node_modules/
+
+# File delle credenziali locali sul tuo PC (Tutto il resto va su Render)
+.env
