@@ -1,3 +1,13 @@
+const express = require('express');
+const app = express();
+const port = process.env.PORT || 3000;
+app.get('/', (req, res) => res.send('⚡ Scorpion OS Online!'));
+app.listen(port, () => console.log(`🌍 [Scorpion OS] Server web di keep-alive attivo sulla porta ${port}`));
+
+// DA QUI IN POI LASCIA IL TUO VECCHIO CODICE DI INDEX.JS
+const fs = require('node:fs');
+const path = require('node:path');
+// ... tutto il resto del codice che avevi prima ...
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, GatewayIntentBits, EmbedBuilder } = require('discord.js');
