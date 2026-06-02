@@ -1,0 +1,19 @@
+{
+  "name": "scorpion-os-bot",
+  "version": "2.0.0",
+  "description": "Core di sistema Scorpion OS per la gestione di economia, fazioni e database di polizia.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.4.5",
+    "firebase-admin": "^12.0.0"
+  },
+  "engines": {
+    "node": ">=16.9.0"
+  },
+  "author": "Creatore",
+  "license": "ISC"
+}
