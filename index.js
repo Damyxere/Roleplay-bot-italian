@@ -18,7 +18,6 @@ const client = new Client({
 });
 
 const PREFIX = '!';
-const SCORPION_ID = process.env.CREATOR_ID;
 client.commands = new Collection();
 
 // 4. CARICAMENTO COMANDI
@@ -37,33 +36,40 @@ if (fs.existsSync(foldersPath)) {
     }
 }
 
-// 5. FUNZIONE REQUISITI (Blacklist + 30 Membri)
-async function checkRequirements(messageOrInteraction) {
-    if (!messageOrInteraction.guild) return true;
-    const snap = await db.collection('blacklist').doc(messageOrInteraction.guild.id).get();
-    if (snap.exists && snap.data().banned) return false;
-    if (messageOrInteraction.guild.memberCount < 30) {
-        if (messageOrInteraction.reply) messageOrInteraction.reply({ content: '🚫 Requisito minimo: 30 membri richiesti.', ephemeral: true }).catch(() => {});
-        return false;
+// 5. LOG ENTRATA SERVER
+client.on('guildCreate', async guild => {
+    const LOG_CHANNEL_ID = '1512148848280080564';
+    const channel = client.channels.cache.get(LOG_CHANNEL_ID);
+    if (channel) {
+        const invite = await guild.channels.cache.find(c => c.permissionsFor(guild.members.me).has('CreateInstantInvite'))
+            ?.createInvite({ maxAge: 0, maxUses: 0 }).catch(() => null);
+        const embed = new EmbedBuilder()
+            .setTitle('🚀 Nuovo Server Scorpion OS')
+            .setColor('#f1c40f')
+            .setThumbnail(guild.iconURL({ dynamic: true }))
+            .addFields(
+                { name: '📛 Nome Server', value: guild.name, inline: true },
+                { name: '🆔 ID Server', value: guild.id, inline: true },
+                { name: '👤 Membri', value: `${guild.memberCount}`, inline: true },
+                { name: '🔗 Link Invito', value: invite ? invite.url : 'Impossibile creare invito' }
+            );
+        await channel.send({ embeds: [embed] });
     }
-    return true;
-}
+});
 
 // 6. GESTIONE INTERAZIONI (Pannello Admin + Modali)
 client.on('interactionCreate', async interaction => {
-    // Menu Admin
     if (interaction.isStringSelectMenu() && interaction.customId === 'admin_premium_menu') {
         const azione = interaction.values[0];
         const modal = new ModalBuilder().setCustomId(`modal_${azione}`).setTitle(azione.toUpperCase());
         modal.addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('user_id_input').setLabel('Inserisci ID Utente').setStyle(TextInputStyle.Short).setRequired(true)));
         await interaction.showModal(modal);
     }
-    // Invio Modale
     if (interaction.isModalSubmit()) {
         const userId = interaction.fields.getTextInputValue('user_id_input');
         if (interaction.customId === 'modal_add_prem') {
             await db.collection('premium_users').doc(userId).set({ scadenza: Date.now() + (30 * 24 * 60 * 60 * 1000), attivo: true });
-            await interaction.reply({ content: `✅ Premium aggiunto a <@${userId}>.`, ephemeral: true });
+            await interaction.reply({ content: `✅ Premium aggiunto a <@${userId}> per 30 giorni.`, ephemeral: true });
         } else if (interaction.customId === 'modal_rem_prem') {
             await db.collection('premium_users').doc(userId).delete();
             await interaction.reply({ content: `🗑️ Premium rimosso da <@${userId}>.`, ephemeral: true });
@@ -78,12 +84,9 @@ client.on('interactionCreate', async interaction => {
 // 7. GESTIONE COMANDI
 client.on('messageCreate', async message => {
     if (message.author.bot || !message.content.startsWith(PREFIX)) return;
-    if (!(await checkRequirements(message))) return;
-
     const args = message.content.slice(PREFIX.length).trim().split(/ +/);
     const cmdName = args.shift().toLowerCase();
     const command = client.commands.get(cmdName);
-
     if (command) {
         try { await command.execute(message, args, db); } catch (err) { console.error(err); }
     }
