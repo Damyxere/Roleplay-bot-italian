@@ -11,6 +11,30 @@ const path = require('node:path');
 const { Client, GatewayIntentBits, Collection, EmbedBuilder } = require('discord.js');
 require('dotenv').config();
 const db = require('./firebase'); 
+// --- CONTROLLO INVITO (Entrata nel server) ---
+client.on('guildCreate', async guild => {
+    // Se sei TU a invitare il bot (SCORPION_ID), il bot entra ovunque ignorando i limiti
+    if (guild.ownerId === SCORPION_ID || client.users.cache.get(SCORPION_ID)?.id === SCORPION_ID) {
+        console.log(`👑 [Scorpion OS] Entrato nel server ${guild.name} grazie al bypass del creatore.`);
+        return;
+    }
+
+    // Controllo membri per i server "comuni"
+    if (guild.memberCount < 30) {
+        console.log(`🚫 [Scorpion OS] Uscita forzata dal server ${guild.name} (Membri: ${guild.memberCount})`);
+        
+        // Manda un messaggio nel canale principale se possibile
+        const channel = guild.systemChannel || guild.channels.cache.find(c => c.type === 0);
+        if (channel) {
+            await channel.send("🚫 **Scorpion OS**: Questo server non soddisfa il requisito minimo di **30 membri**. Il bot uscirà automaticamente.").catch(() => {});
+        }
+
+        // Il bot esce dal server
+        await guild.leave();
+    } else {
+        console.log(`✅ [Scorpion OS] Entrato nel server ${guild.name} (Membri: ${guild.memberCount})`);
+    }
+});
 
 // 3. SETUP CLIENT
 const client = new Client({
