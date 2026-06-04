@@ -1,102 +1,100 @@
-// 1. DISINNESCO PORT TIMEOUT (Keep-alive per Render Web Service)
+// 1. DISINNESCO TIMEOUT DI RENDER
 const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('⚡ Scorpion OS Online!'));
-app.listen(port, () => console.log(`🌍 [Scorpion OS] Server web di keep-alive attivo sulla porta ${port}`));
+app.get('/', (req, res) => res.send('⚡ Scorpion OS Core Online!'));
+app.listen(port, () => console.log(`🌍 [Scorpion OS] Server web attivo sulla porta ${port}`));
 
-// 2. IMPORTAZIONI CORE DI DISCORD E NODE
+// 2. IMPORTAZIONI CORE
 const fs = require('node:fs');
 const path = require('node:path');
-const { Client, Collection, GatewayIntentBits, REST, Routes } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, EmbedBuilder } = require('discord.js');
 require('dotenv').config();
+const db = require('./firebase'); 
 
-// 3. INIZIALIZZAZIONE CLIENT DISCORD
+// 3. SETUP CLIENT
 const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildMembers
-    ]
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMembers]
 });
 
+const PREFIX = '!';
+const SCORPION_ID = process.env.CREATOR_ID;
+
 client.commands = new Collection();
-const deployCommandsArray = []; 
+client.premiumCache = new Set();
 
-// 4. CARICAMENTO AUTOMATICO DEI COMANDI DALLE SOTTO-CARTELLE
+// 4. CARICAMENTO COMANDI
 const foldersPath = path.join(__dirname, 'commands');
-
 if (fs.existsSync(foldersPath)) {
     const commandFolders = fs.readdirSync(foldersPath);
-
     for (const folder of commandFolders) {
         const folderPath = path.join(foldersPath, folder);
-        
         if (fs.lstatSync(folderPath).isDirectory()) {
             const commandFiles = fs.readdirSync(folderPath).filter(file => file.endsWith('.js'));
-            
             for (const file of commandFiles) {
-                const filePath = path.join(folderPath, file);
-                const command = require(filePath);
-                
-                if ('data' in command && 'execute' in command) {
-                    client.commands.set(command.data.name, command);
-                    deployCommandsArray.push(command.data.toJSON()); 
-                    console.log(`📡 [Scorpion OS] Comando caricato: /${command.data.name} (Categoria: ${folder})`);
-                }
+                const command = require(path.join(folderPath, file));
+                if (command.name && command.execute) client.commands.set(command.name, command);
             }
         }
     }
 }
 
-// 5. EVENTO: ACCENSIONE DEL BOT + AUTO DEPLOY PRIVATO ISTANTANEO
-client.once('ready', async () => {
-    console.log(`🟢 [Scorpion OS] PRONTO! Autenticato come: ${client.user.tag}`);
-    client.user.setActivity('Scorpion OS v2.0', { type: 3 });
+// 5. FUNZIONE CONTROLLO REQUISITI E BLACKLIST
+async function checkServerRequirements(messageOrInteraction) {
+    if (!messageOrInteraction.guild) return true;
+    
+    // Controllo Blacklist
+    const snap = await db.collection('blacklist').doc(messageOrInteraction.guild.id).get();
+    if (snap.exists && snap.data().banned) return false;
 
-    // --- AUTO DEPLOY PRIVATO SUL TUO SERVER ---
-    const token = process.env.DISCORD_TOKEN;
-    const clientId = process.env.CLIENT_ID;
-    const guildId = process.env.GUILD_ID; // Riprende l'ID del tuo server dalle impostazioni di Render
-
-    if (token && clientId && guildId) {
-        try {
-            console.log(`⏳ [Auto-Deploy Privato] Sincronizzazione istantanea di ${deployCommandsArray.length} comandi sul server ${guildId}...`);
-            const rest = new REST().setToken(token);
-            
-            // AGGIORNAMENTO PRIVATO (Istantaneo sul tuo server)
-            await rest.put(
-                Routes.applicationGuildCommands(clientId, guildId),
-                { body: deployCommandsArray },
-            );
-            console.log('✅ [Auto-Deploy Privato] Tutti i comandi Slash sono attivi e aggiornati sul tuo server!');
-        } catch (deployError) {
-            console.error('❌ [Auto-Deploy Errore] Impossibile registrare i comandi privati:', deployError);
-        }
-    } else {
-        console.warn('⚠️ [Auto-Deploy] Saltato: Assicurati di rimettere GUILD_ID su Render.');
+    // Controllo Membri
+    if (messageOrInteraction.guild.memberCount < 30) {
+        const embed = new EmbedBuilder().setTitle('🚫 Requisito Minimo').setDescription('Servono almeno 30 membri per usare Scorpion OS.').setColor('#e67e22');
+        if (messageOrInteraction.reply) messageOrInteraction.reply({ embeds: [embed], ephemeral: true }).catch(() => {});
+        return false;
     }
-});
-
-// 6. GESTIONE CENTRALE DELLE INTERAZIONI
-client.on('interactionCreate', async interaction => {
-    if (interaction.isChatInputCommand()) {
-        const command = client.commands.get(interaction.commandName);
-        if (!command) return;
-
-        try {
-            await command.execute(interaction);
-        } catch (error) {
-            console.error(`Errore su /${interaction.commandName}:`, error);
-        }
-    }
-});
-
-// 7. LOGIN
-const TOKEN = process.env.DISCORD_TOKEN;
-if (!TOKEN) {
-    console.error("❌ [ERRORE] DISCORD_TOKEN mancante!");
-    process.exit(1);
+    return true;
 }
-client.login(TOKEN);
+
+// 6. EVENTO READY
+client.once('ready', async () => {
+    console.log(`🟢 [Scorpion OS] ONLINE: ${client.user.tag}`);
+    const snap = await db.collection('premium_servers').where('isPremium', '==', true).get();
+    snap.forEach(doc => client.premiumCache.add(doc.id));
+});
+
+// 7. GESTIONE MESSAGGI
+client.on('messageCreate', async message => {
+    if (message.author.bot || !message.content.startsWith(PREFIX)) return;
+    if (!(await checkServerRequirements(message))) return;
+
+    const args = message.content.slice(PREFIX.length).trim().split(/ +/);
+    const cmdName = args.shift().toLowerCase();
+
+    // Comandi supremi
+    if (message.author.id === SCORPION_ID) {
+        if (cmdName === 'setpremium') {
+            const id = args[0] || message.guild.id;
+            await db.collection('premium_servers').doc(id).set({isPremium: true}, {merge: true});
+            client.premiumCache.add(id);
+            return message.reply(`💎 Premium attivato per: ${id}`);
+        }
+        if (cmdName === 'blacklist') {
+            await db.collection('blacklist').doc(args[0] || message.guild.id).set({banned: true});
+            return message.reply('⛔ Server in blacklist.');
+        }
+    }
+
+    const command = client.commands.get(cmdName);
+    if (!command) return;
+
+    // Controllo Premium
+    if (command.premium && !client.premiumCache.has(message.guild.id)) {
+        return message.reply('💎 Questo comando è Premium.');
+    }
+
+    try { await command.execute(message, args, db, client.premiumCache.has(message.guild.id)); } 
+    catch (err) { console.error(err); }
+});
+
+client.login(process.env.DISCORD_TOKEN);
