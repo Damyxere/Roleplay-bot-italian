@@ -88,3 +88,26 @@ app.post('/api/settings/toggle', (req, res) => {
     // Esempio: db.collection('settings').doc('bot').update({ [module]: status });
     res.json({ success: true, message: `Modulo ${module} impostato su ${status}` });
 });
+// Rotta protetta per la dashboard
+app.get('/dashboard', (req, res) => {
+    // 1. Recupera l'ID dell'utente che sta tentando di accedere
+    // NOTA: Assicurati che quando l'utente fa il login, tu passi il suo ID in qualche modo, 
+    // qui assumiamo che arrivi tramite un parametro (es. ?uid=...)
+    const userAttemptingAccess = req.query.uid; 
+
+    // 2. Confronto diretto con la variabile CREATORE_ID di Render
+    const adminId = process.env.CREATORE_ID;
+
+    if (userAttemptingAccess && userAttemptingAccess === adminId) {
+        // Accesso consentito
+        res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+    } else {
+        // Accesso negato
+        res.status(403).send(`
+            <body style="background:black; color:#ca8a04; font-family:sans-serif; text-align:center; padding-top:50px;">
+                <h1>❌ ACCESSO NEGATO</h1>
+                <p>Solo il Creatore (${adminId}) può accedere a questo pannello.</p>
+            </body>
+        `);
+    }
+});
