@@ -1,3 +1,27 @@
+
+// Aggiungi queste dipendenze in cima al file
+const passport = require('passport');
+const DiscordStrategy = require('passport-discord').Strategy;
+const session = require('express-session');
+
+// Configurazione sessione (fondamentale per il login)
+app.use(session({
+    secret: 'super-segreto-random',
+    resave: false,
+    saveUninitialized: false
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Definizione della rotta che ora ti dà errore
+app.get('/auth/discord', passport.authenticate('discord'));
+
+app.get('/callback', passport.authenticate('discord', {
+    failureRedirect: '/'
+}), (req, res) => {
+    res.redirect('/dashboard.html'); // Ti porta alla dashboard dopo il login
+});
 // 1. IMPORTAZIONI CORE
 const fs = require('node:fs');
 const path = require('node:path');
