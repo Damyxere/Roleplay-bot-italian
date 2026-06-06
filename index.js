@@ -93,3 +93,21 @@ client.on('messageCreate', async message => {
 });
 
 client.login(process.env.DISCORD_TOKEN);
+
+const express = require('express');
+const path = require('path');
+const app = express();
+
+// Serve i file della cartella 'public'
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Quando qualcuno entra nel sito, carica index.html
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Avvia il server sulla porta che ti dà Render
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Sito attivo sulla porta ${PORT}`);
+});
