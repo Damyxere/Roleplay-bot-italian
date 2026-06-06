@@ -1,10 +1,17 @@
+// 1. IMPORTAZIONI CORE
+const fs = require('node:fs');
+const path = require('node:path');
+const { Client, GatewayIntentBits, Collection, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+require('dotenv').config();
+const db = require('./firebase'); 
 
-// Aggiungi queste dipendenze in cima al file
-const passport = require('passport');
-const DiscordStrategy = require('passport-discord').Strategy;
+// 2. SETUP SERVER WEB E SESSIONI
+const express = require('express');
 const session = require('express-session');
+const passport = require('passport');
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-// Configurazione sessione (fondamentale per il login)
 app.use(session({
     secret: 'super-segreto-random',
     resave: false,
@@ -13,34 +20,15 @@ app.use(session({
 
 app.use(passport.initialize());
 app.use(passport.session());
-
-// Definizione della rotta che ora ti dà errore
-app.get('/auth/discord', passport.authenticate('discord'));
-
-app.get('/callback', passport.authenticate('discord', {
-    failureRedirect: '/'
-}), (req, res) => {
-    res.redirect('/dashboard.html'); // Ti porta alla dashboard dopo il login
-});
-// 1. IMPORTAZIONI CORE
-const fs = require('node:fs');
-const path = require('node:path');
-const { Client, GatewayIntentBits, Collection, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
-require('dotenv').config();
-const db = require('./firebase'); 
-
-// 2. SETUP SERVER WEB (EXPRESS)
-const express = require('express');
-const app = express();
-const PORT = process.env.PORT || 3000;
-
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Avviamo il server web
+// Rotta per il login (da configurare con passport in seguito)
+app.get('/auth/discord', passport.authenticate('discord'));
+
 app.listen(PORT, () => {
     console.log(`🌍 [Scorpion OS] Server web attivo sulla porta ${PORT}`);
 });
@@ -58,7 +46,7 @@ const foldersPath = path.join(__dirname, 'commands');
 if (fs.existsSync(foldersPath)) {
     const commandFolders = fs.readdirSync(foldersPath);
     for (const folder of commandFolders) {
-        const folderPath = path.join(__dirname, 'commands', folder);
+        const folderPath = path.join(foldersPath, folder);
         if (fs.lstatSync(folderPath).isDirectory()) {
             const commandFiles = fs.readdirSync(folderPath).filter(file => file.endsWith('.js'));
             for (const file of commandFiles) {
@@ -69,7 +57,7 @@ if (fs.existsSync(foldersPath)) {
     }
 }
 
-// 5. EVENTI E LOG
+// 5. GESTIONE EVENTI (Log Entrata)
 client.on('guildCreate', async guild => {
     const LOG_CHANNEL_ID = '1512148848280080564';
     const channel = client.channels.cache.get(LOG_CHANNEL_ID);
