@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scorpion OS | Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .active-tab { border-left: 4px solid #ca8a04; background: #18181b; }
+        body { scrollbar-width: thin; scrollbar-color: #3f3f46 #000; }
+    </style>
+</head>
+<body class="bg-black text-yellow-500 font-sans min-h-screen flex">
+
+    <aside class="w-16 md:w-64 border-r border-yellow-900 bg-zinc-950 flex flex-col transition-all">
+        <div class="p-6 text-xl font-bold tracking-tighter text-center md:text-left">SCORPION<span class="text-yellow-600">OS</span></div>
+        <nav class="flex-1 mt-4">
+            <button onclick="switchTab('stats', this)" class="w-full p-4 text-left active-tab">📊 <span class="hidden md:inline ml-2">Statistiche</span></button>
+            <button onclick="switchTab('modules', this)" class="w-full p-4 text-left">⚙️ <span class="hidden md:inline ml-2">Moduli Bot</span></button>
+            <button onclick="switchTab('db', this)" class="w-full p-4 text-left">💾 <span class="hidden md:inline ml-2">Database</span></button>
+        </nav>
+    </aside>
+
+    <main class="flex-1 p-6 md:p-10">
+        <div id="content">
+            <h1 class="text-2xl font-bold mb-6">Benvenuto, Admin</h1>
+            <p class="opacity-60">Seleziona una sezione dalla sidebar per iniziare a configurare il bot.</p>
+        </div>
+    </main>
+
+    <script>
+        function switchTab(tab, btn) {
+            // Reset bottoni
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active-tab'));
+            btn.classList.add('active-tab');
+
+            const content = document.getElementById('content');
+            
+            // Render dinamico (qui in futuro collegherai le API)
+            if(tab === 'stats') {
+                content.innerHTML = `<h2 class="text-xl mb-4 font-bold">Statistiche in Tempo Reale</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-zinc-900 p-6 rounded border border-yellow-900">Uptime: <span class="text-white">48h 22m</span></div>
+                    <div class="bg-zinc-900 p-6 rounded border border-yellow-900">Server: <span class="text-white">12</span></div>
+                </div>`;
+            } else if(tab === 'modules') {
+                content.innerHTML = `<h2 class="text-xl mb-4 font-bold">Configurazione Moduli</h2>
+                <div class="bg-zinc-900 p-6 rounded border border-yellow-900 flex justify-between items-center">
+                    <span>Sistema Economia</span>
+                    <button class="bg-yellow-600 text-black px-4 py-1 rounded font-bold">ON</button>
+                </div>`;
+            } else {
+                content.innerHTML = `<h2 class="text-xl mb-4 font-bold">Gestione Database</h2>
+                <input type="text" placeholder="ID Utente da modificare..." class="w-full p-3 bg-zinc-900 border border-yellow-900 rounded mb-4">
+                <button class="w-full p-3 bg-yellow-600 text-black font-bold rounded">ESEGUI COMANDO DATABASE</button>`;
+            }
+        }
+    </script>
+</body>
+</html>
