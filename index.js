@@ -81,3 +81,10 @@ client.on('messageCreate', async message => {
 });
 
 client.login(process.env.DISCORD_TOKEN);
+// Esempio: Modifica stato moduli
+app.post('/api/settings/toggle', (req, res) => {
+    const { module, status } = req.body;
+    // Logica per salvare in Firebase o in memoria che il modulo X è ON/OFF
+    // Esempio: db.collection('settings').doc('bot').update({ [module]: status });
+    res.json({ success: true, message: `Modulo ${module} impostato su ${status}` });
+});
