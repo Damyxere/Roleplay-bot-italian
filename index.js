@@ -1,18 +1,27 @@
-// 1. DISINNESCO TIMEOUT RENDER
-const express = require('express');
-const app = express();
-const port = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('⚡ Scorpion OS Core Online!'));
-app.listen(port, () => console.log(`🌍 [Scorpion OS] Server web attivo sulla porta ${port}`));
-
-// 2. IMPORTAZIONI CORE
+// 1. IMPORTAZIONI CORE
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, GatewayIntentBits, Collection, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
 require('dotenv').config();
 const db = require('./firebase'); 
 
-// 3. SETUP CLIENT
+// 2. SETUP SERVER WEB (EXPRESS)
+const express = require('express');
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Avviamo il server web
+app.listen(PORT, () => {
+    console.log(`🌍 [Scorpion OS] Server web attivo sulla porta ${PORT}`);
+});
+
+// 3. SETUP CLIENT DISCORD
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMembers]
 });
@@ -25,7 +34,7 @@ const foldersPath = path.join(__dirname, 'commands');
 if (fs.existsSync(foldersPath)) {
     const commandFolders = fs.readdirSync(foldersPath);
     for (const folder of commandFolders) {
-        const folderPath = path.join(foldersPath, folder);
+        const folderPath = path.join(__dirname, 'commands', folder);
         if (fs.lstatSync(folderPath).isDirectory()) {
             const commandFiles = fs.readdirSync(folderPath).filter(file => file.endsWith('.js'));
             for (const file of commandFiles) {
@@ -36,7 +45,7 @@ if (fs.existsSync(foldersPath)) {
     }
 }
 
-// 5. LOG ENTRATA SERVER
+// 5. EVENTI E LOG
 client.on('guildCreate', async guild => {
     const LOG_CHANNEL_ID = '1512148848280080564';
     const channel = client.channels.cache.get(LOG_CHANNEL_ID);
@@ -57,7 +66,7 @@ client.on('guildCreate', async guild => {
     }
 });
 
-// 6. GESTIONE INTERAZIONI (Pannello Admin + Modali)
+// 6. GESTIONE INTERAZIONI
 client.on('interactionCreate', async interaction => {
     if (interaction.isStringSelectMenu() && interaction.customId === 'admin_premium_menu') {
         const azione = interaction.values[0];
@@ -93,21 +102,3 @@ client.on('messageCreate', async message => {
 });
 
 client.login(process.env.DISCORD_TOKEN);
-
-const express = require('express');
-const path = require('path');
-const app = express();
-
-// Serve i file della cartella 'public'
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Quando qualcuno entra nel sito, carica index.html
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Avvia il server sulla porta che ti dà Render
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Sito attivo sulla porta ${PORT}`);
-});
