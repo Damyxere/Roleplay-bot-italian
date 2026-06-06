@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body class="bg-gray-900 text-white font-sans">
+
+    <!-- Sidebar / Navigazione -->
+    <nav class="p-6 border-b border-gray-700 flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-yellow-500 italic tracking-tighter">SCORPION OS</h1>
+        <div class="space-x-4">
+            <span class="text-sm text-gray-400">Admin: Scorpion</span>
+            <button class="bg-yellow-600 px-4 py-2 rounded-lg hover:bg-yellow-500 transition">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+        <!-- Card Gestione Premium -->
+        <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl hover:border-yellow-500 transition">
+            <h2 class="text-xl mb-4 text-yellow-400 font-semibold">💎 Aggiungi Premium</h2>
+            <input type="text" placeholder="ID Utente" class="w-full bg-gray-900 p-3 rounded mb-3 border border-gray-600">
+            <select class="w-full bg-gray-900 p-3 rounded mb-3">
+                <option>30 Giorni</option>
+                <option>60 Giorni</option>
+                <option>1 Anno</option>
+            </select>
+            <button class="w-full bg-yellow-600 py-2 rounded font-bold hover:scale-105 transition">Attiva</button>
+        </div>
+
+        <!-- Card Statistiche -->
+        <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl">
+            <h2 class="text-xl mb-4 text-gray-300">📊 Statistiche</h2>
+            <p class="text-4xl font-bold">42 <span class="text-sm text-gray-500">Server Attivi</span></p>
+            <p class="text-4xl font-bold mt-2">15 <span class="text-sm text-gray-500">Premium Totali</span></p>
+        </div>
+
+        <!-- Card Blacklist -->
+        <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl">
+            <h2 class="text-xl mb-4 text-red-400">🚫 Gestione Blacklist</h2>
+            <input type="text" placeholder="ID Server da bannare" class="w-full bg-gray-900 p-3 rounded mb-3 border border-gray-600">
+            <button class="w-full bg-red-600 py-2 rounded font-bold hover:bg-red-500 transition">Esegui Bandito</button>
+        </div>
+
+    </main>
+
+</body>
+</html>
