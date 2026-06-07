@@ -1,48 +1,61 @@
-const fs = require('node:fs');
-const path = require('node:path');
 const { Client, GatewayIntentBits } = require('discord.js');
+const express = require('express');
+const path = require('node:path');
+const bodyParser = require('body-parser');
 require('dotenv').config();
 
-const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Middleware
 app.use(express.static(path.join(__dirname, 'public')));
-
-// --- ROTTE WEB ---
-
-// 1. Home Page
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// 2. Callback (Sbloccato per il Creatore)
-app.get('/callback', async (req, res) => {
-    // Forziamo il riconoscimento dell'utente come il CREATORE_ID configurato su Render
-    const myId = process.env.CREATORE_ID;
-    
-    // Redirect diretto alla dashboard con il tuo ID validato
-    res.redirect('/dashboard?uid=' + myId);
-});
-
-// 3. Dashboard (Accessibile solo se l'ID nel link è uguale al CREATORE_ID)
-app.get('/dashboard', (req, res) => {
-    const userUid = req.query.uid;
-    
-    if (userUid && userUid === process.env.CREATORE_ID) {
-        res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
-    } else {
-        res.status(403).send("<h1>❌ ACCESSO NEGATO: Solo il creatore può accedere.</h1>");
-    }
-});
-
-app.listen(PORT, () => {
-    console.log(`🌍 [Scorpion OS] Server Web online sulla porta ${PORT}`);
-});
+app.use(bodyParser.json());
 
 // --- CLIENT DISCORD ---
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMembers]
 });
 
+// --- API BACKEND (Comandi Bot) ---
+app.post('/api/bot/comando', async (req, res) => {
+    const { azione, target } = req.body;
+    const guild = client.guilds.cache.get(process.env.GUILD_ID); // Usa l'ID del server dalle variabili
+
+    try {
+        if (azione === 'annuncio') {
+            const channel = guild.channels.cache.find(c => c.type === 0); // Primo canale testo trovato
+            await channel.send(`📢 **COMANDO DASHBOARD:** ${target}`);
+            return res.json({ success: true });
+        }
+        if (azione === 'ban') {
+            await guild.members.ban(target);
+            return res.json({ success: true });
+        }
+        res.status(400).json({ error: "Azione non valida" });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// --- ROTTE WEB ---
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+
+app.get('/callback', (req, res) => {
+    // Reindirizzamento diretto con il tuo ID protetto
+    res.redirect('/dashboard?uid=' + process.env.CREATORE_ID);
+});
+
+app.get('/dashboard', (req, res) => {
+    if (req.query.uid === process.env.CREATORE_ID) {
+        res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+    } else {
+        res.status(403).send("<h1>Accesso Negato</h1>");
+    }
+});
+
+// --- AVVIO ---
+client.once('ready', () => console.log(`🚀 Bot online: ${client.user.tag}`));
 client.login(process.env.DISCORD_TOKEN);
+
+app.listen(PORT, () => console.log(`🌍 Server web attivo su porta ${PORT}`));
