@@ -2,56 +2,56 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
+    <title>SCORPION OS | PREMIUM</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .neon-border { border: 1px solid #a16207; box-shadow: 0 0 10px rgba(161, 98, 7, 0.3); }
-        .bg-glass { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(10px); }
+        .glass { background: rgba(15, 15, 15, 0.8); backdrop-filter: blur(12px); border: 1px solid #333; }
+        .gradient-text { background: linear-gradient(to right, #ca8a04, #eab308); -webkit-background-clip: text; color: transparent; }
     </style>
 </head>
-<body class="bg-black text-yellow-600 font-mono p-6">
+<body class="bg-black text-yellow-500 font-sans min-h-screen">
+    <div class="fixed w-64 h-full border-r border-yellow-900 p-6">
+        <h1 class="text-2xl font-bold gradient-text mb-10">SCORPION OS</h1>
+        <nav class="space-y-4">
+            <button onclick="show('dashboard')" class="w-full text-left p-3 hover:bg-yellow-900/20 rounded">📊 Pannello Generale</button>
+            <button onclick="show('moderation')" class="w-full text-left p-3 hover:bg-yellow-900/20 rounded">🛡️ Moderazione</button>
+            <button onclick="show('logs')" class="w-full text-left p-3 hover:bg-yellow-900/20 rounded">📜 Log di Sistema</button>
+        </nav>
+    </div>
 
-    <div class="max-w-6xl mx-auto">
-        <!-- Header -->
-        <header class="mb-10 border-b border-yellow-900 pb-4">
-            <h1 class="text-4xl font-bold tracking-widest">SCORPION // CMD</h1>
-            <p class="text-sm opacity-50">SISTEMA DI CONTROLLO OPERATIVO ATTIVO</p>
-        </header>
-
-        <!-- Griglia Comandi -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            
-            <!-- Card Comando: Annuncio -->
-            <div class="bg-glass p-6 rounded-lg neon-border">
-                <h2 class="text-xl mb-4 text-white">📢 BROADCAST</h2>
-                <textarea id="msg" class="w-full bg-black border border-yellow-900 p-2 mb-4 text-sm" placeholder="Messaggio..."></textarea>
-                <button onclick="sendCmd('annuncio')" class="w-full bg-yellow-600 text-black font-bold py-2 hover:bg-yellow-500">ESEGUI</button>
+    <div class="ml-64 p-10">
+        <div id="view-dashboard">
+            <h2 class="text-3xl font-bold mb-6">Dashboard Premium</h2>
+            <div class="grid grid-cols-3 gap-6">
+                <div class="glass p-6 rounded-xl"><h3>CPU Load</h3><p class="text-2xl font-bold">12%</p></div>
+                <div class="glass p-6 rounded-xl"><h3>RAM Usage</h3><p class="text-2xl font-bold">450MB</p></div>
+                <div class="glass p-6 rounded-xl"><h3>Bot Latency</h3><p class="text-2xl font-bold">34ms</p></div>
             </div>
-
-            <!-- Card Comando: Ban Utente -->
-            <div class="bg-glass p-6 rounded-lg neon-border">
-                <h2 class="text-xl mb-4 text-white">🚫 GESTIONE UTENTI</h2>
-                <input id="uid" class="w-full bg-black border border-yellow-900 p-2 mb-4" placeholder="ID Utente...">
-                <button onclick="sendCmd('ban')" class="w-full bg-red-900 text-red-200 font-bold py-2 hover:bg-red-800">BANNA UTENTE</button>
-            </div>
-
-            <!-- Card Stato Bot -->
-            <div class="bg-glass p-6 rounded-lg neon-border flex flex-col justify-center">
-                <h2 class="text-xl mb-4 text-white">⚙️ SISTEMA</h2>
-                <div class="flex justify-between mb-2"><span>Status:</span> <span class="text-green-500">ONLINE</span></div>
-                <div class="flex justify-between"><span>Ping:</span> <span>24ms</span></div>
+        </div>
+        
+        <div id="view-moderation" class="hidden">
+            <h2 class="text-3xl font-bold mb-6">Area Moderazione</h2>
+            <div class="glass p-8 rounded-xl max-w-lg">
+                <input id="targetId" class="w-full bg-black border border-yellow-800 p-3 rounded mb-4" placeholder="ID Target">
+                <button onclick="exec('ban')" class="w-full bg-red-600 text-black font-bold py-3 rounded mb-2">BAN UTENTE</button>
+                <button onclick="exec('kick')" class="w-full bg-yellow-600 text-black font-bold py-3 rounded">KICK UTENTE</button>
             </div>
         </div>
     </div>
 
     <script>
-        async function sendCmd(type) {
-            const val = document.getElementById(type === 'annuncio' ? 'msg' : 'uid').value;
-            const res = await fetch('/api/bot/comando', {
+        function show(id) {
+            document.querySelectorAll('[id^=view-]').forEach(el => el.classList.add('hidden'));
+            document.getElementById('view-' + id).classList.remove('hidden');
+        }
+        async function exec(type) {
+            const id = document.getElementById('targetId').value;
+            const res = await fetch('/api/premium', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ azione: type, target: val })
+                body: JSON.stringify({ type, id })
             });
-            alert('Comando inviato!');
+            alert('Comando Premium Eseguito');
         }
     </script>
 </body>
