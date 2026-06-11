@@ -3,17 +3,10 @@ const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord
 const fs = require('fs');
 const http = require('http');
 
-// 1. Server HTTP per mantenere attivo il bot su Render
 const port = process.env.PORT || 10000;
-http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Bot online!');
-}).listen(port, () => console.log(`🚀 Server di mantenimento attivo sulla porta ${port}`));
+http.createServer((req, res) => res.end('Bot Online')).listen(port);
 
-const client = new Client({ 
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] 
-});
-
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 client.commands = new Collection();
 
 // Caricamento comandi
@@ -25,31 +18,17 @@ for (const file of commandFiles) {
     commands.push(command.data.toJSON());
 }
 
-// 2. Registrazione comandi all'avvio
 client.once('ready', async () => {
-    console.log(`🚀 Bot online come ${client.user.tag}!`);
-    try {
-        const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-        await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
-        console.log('✅ Comandi registrati globalmente!');
-    } catch (error) {
-        console.error(error);
-    }
+    console.log(`🚀 Bot online: ${client.user.tag}`);
+    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+    await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
+    console.log('✅ Comandi globali registrati.');
 });
 
-// 3. Gestione interazioni (Slash Commands)
 client.on('interactionCreate', async interaction => {
     if (!interaction.isChatInputCommand()) return;
-
     const command = client.commands.get(interaction.commandName);
-    if (!command) return;
-
-    try {
-        await command.execute(interaction);
-    } catch (e) {
-        console.error(e);
-        await interaction.reply({ content: '❌ Errore durante l\'esecuzione del comando.', ephemeral: true });
-    }
+    if (command) await command.execute(interaction);
 });
 
 client.login(process.env.DISCORD_TOKEN);
