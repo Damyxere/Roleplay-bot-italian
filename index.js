@@ -1,13 +1,19 @@
-require('dotenv').config(); // Carica le variabili d'ambiente
+require('dotenv').config();
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const fs = require('fs');
-const { db } = require('./firebase'); // Importa il database dal tuo file firebase.js
+const { saveDocumento } = require('./dbManager'); // Importa il manager per il DB
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+const client = new Client({ 
+    intents: [
+        GatewayIntentBits.Guilds, 
+        GatewayIntentBits.GuildMessages, 
+        GatewayIntentBits.MessageContent
+    ] 
+});
 
 client.commands = new Collection();
 
-// Caricamento comandi (scansiona la cartella commands)
+// Caricamento comandi
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 for (const file of commandFiles) {
     const command = require(`./commands/${file}`);
@@ -15,11 +21,11 @@ for (const file of commandFiles) {
 }
 
 client.once('ready', () => {
-    console.log(`🚀 Bot online come ${client.user.tag}!`);
+    console.log(`🚀 Bot online e connesso a Firestore!`);
 });
 
-// Gestione Comandi Slash
 client.on('interactionCreate', async interaction => {
+    // Gestione Slash Commands
     if (interaction.isChatInputCommand()) {
         const command = client.commands.get(interaction.commandName);
         if (!command) return;
@@ -27,7 +33,7 @@ client.on('interactionCreate', async interaction => {
             await command.execute(interaction);
         } catch (error) {
             console.error(error);
-            await interaction.reply({ content: '❌ Errore nell\'esecuzione del comando.', ephemeral: true });
+            await interaction.reply({ content: '❌ Errore interno.', ephemeral: true });
         }
     } 
     
@@ -49,13 +55,17 @@ client.on('interactionCreate', async interaction => {
                 creato_il: new Date().toLocaleDateString()
             };
 
-            // Salvataggio nel database sotto il server specifico
-            await db.ref(`server/${interaction.guild.id}/utenti/${interaction.user.id}/documento`).set(docData);
+            // Utilizziamo il manager per salvare su Firestore
+            const successo = await saveDocumento(interaction.guild.id, interaction.user.id, docData);
 
-            await interaction.reply({ 
-                content: `✅ Documento creato con successo! Il tuo numero ID è: **${numeroDoc}**`, 
-                ephemeral: true 
-            });
+            if (successo) {
+                await interaction.reply({ 
+                    content: `✅ Documento creato con successo! Il tuo numero ID è: **${numeroDoc}**`, 
+                    ephemeral: true 
+                });
+            } else {
+                await interaction.reply({ content: "❌ Errore durante il salvataggio nel database.", ephemeral: true });
+            }
         }
     }
 });
