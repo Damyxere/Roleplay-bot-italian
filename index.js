@@ -1,13 +1,19 @@
-const http = require('http');
-http.createServer((req, res) => {
-    res.write("Bot attivo!");
-    res.end();
-}).listen(8080);
 require('dotenv').config();
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const fs = require('fs');
-const { saveDocumento } = require('./dbManager'); // Importa il manager per il DB
+const http = require('http');
+const { saveDocumento } = require('./dbManager'); 
 
+// 1. Server HTTP per mantenere il bot attivo su Render
+const port = process.env.PORT || 10000;
+http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Il bot e online e attivo!');
+}).listen(port, () => {
+    console.log(`🚀 Server di mantenimento attivo sulla porta ${port}`);
+});
+
+// 2. Setup Bot
 const client = new Client({ 
     intents: [
         GatewayIntentBits.Guilds, 
@@ -29,8 +35,8 @@ client.once('ready', () => {
     console.log(`🚀 Bot online e connesso a Firestore!`);
 });
 
+// 3. Gestione Interazioni
 client.on('interactionCreate', async interaction => {
-    // Gestione Slash Commands
     if (interaction.isChatInputCommand()) {
         const command = client.commands.get(interaction.commandName);
         if (!command) return;
@@ -42,7 +48,6 @@ client.on('interactionCreate', async interaction => {
         }
     } 
     
-    // Gestione Invio Form (Modal)
     else if (interaction.isModalSubmit()) {
         if (interaction.customId === 'modal_crea_documento') {
             const numeroDoc = 'DOC-' + Math.floor(1000 + Math.random() * 9000);
@@ -60,7 +65,6 @@ client.on('interactionCreate', async interaction => {
                 creato_il: new Date().toLocaleDateString()
             };
 
-            // Utilizziamo il manager per salvare su Firestore
             const successo = await saveDocumento(interaction.guild.id, interaction.user.id, docData);
 
             if (successo) {
@@ -69,7 +73,7 @@ client.on('interactionCreate', async interaction => {
                     ephemeral: true 
                 });
             } else {
-                await interaction.reply({ content: "❌ Errore durante il salvataggio nel database.", ephemeral: true });
+                await interaction.reply({ content: "❌ Errore durante il salvataggio su Firestore.", ephemeral: true });
             }
         }
     }
