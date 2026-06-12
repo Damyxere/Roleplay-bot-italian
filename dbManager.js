@@ -1,21 +1,47 @@
-const { db } = require('./firebase'); // Importa l'istanza che abbiamo preparato
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
 
+// Carica la configurazione dal JSON salvato nelle variabili d'ambiente
+const serviceAccount = JSON.parse(process.env.FIREBASE_MASTER_CONFIG);
+
+initializeApp({
+    credential: cert(serviceAccount)
+});
+
+const db = getFirestore();
+
+/**
+ * Salva un documento nella collezione 'documenti'
+ */
 async function saveDocumento(guildId, userId, data) {
     try {
-        await db.collection('servers').doc(guildId)
-                .collection('utenti').doc(userId)
-                .set({ documento: data }, { merge: true });
+        // Creiamo una chiave univoca composta da server e utente
+        const docRef = db.collection('documenti').doc(`${guildId}_${userId}`);
+        await docRef.set(data);
+        console.log(`✅ Documento salvato con successo per l'utente ${userId}`);
         return true;
     } catch (error) {
-        console.error("Errore salvataggio DB:", error);
+        console.error("❌ ERRORE CRITICO FIREBASE:", error);
         return false;
     }
 }
 
+/**
+ * Recupera un documento dalla collezione 'documenti'
+ */
 async function getDocumento(guildId, userId) {
-    const docRef = await db.collection('servers').doc(guildId)
-                           .collection('utenti').doc(userId).get();
-    return docRef.exists ? docRef.data().documento : null;
+    try {
+        const docRef = db.collection('documenti').doc(`${guildId}_${userId}`);
+        const doc = await docRef.get();
+        
+        if (!doc.exists) {
+            return null;
+        }
+        return doc.data();
+    } catch (error) {
+        console.error("❌ ERRORE RECUPERO FIREBASE:", error);
+        return null;
+    }
 }
 
 module.exports = { saveDocumento, getDocumento };
