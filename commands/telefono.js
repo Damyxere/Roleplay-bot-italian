@@ -1,35 +1,21 @@
-const { SlashCommandBuilder } = require('discord.js');
-const { haDocumento, getPin } = require('../dbManager');
-const { inviaSchermo } = require('../utils/viewManager');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('telefono')
-        .setDescription('Accedi allo ScorpionPhone'),
+    execute: async (interaction) => {
+        const row1 = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('btn_1').setLabel('1').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('btn_2').setLabel('2').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('btn_3').setLabel('3').setStyle(ButtonStyle.Secondary),
+        );
+        const row2 = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('btn_invia').setLabel('INVIA').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId('btn_canc').setLabel('CANC').setStyle(ButtonStyle.Danger),
+        );
 
-    async execute(interaction) {
-        const guildId = interaction.guild.id;
-        const userId = interaction.user.id;
-
-        // 1. Controllo esistenza documento (Middleware di protezione)
-        const registrato = await haDocumento(guildId, userId);
-        if (!registrato) {
-            return interaction.reply({ 
-                content: "❌ **Accesso Negato:** Devi prima creare un documento RP con `/crea-documento`.", 
-                ephemeral: true 
-            });
-        }
-
-        // 2. Controllo se l'utente ha già un PIN
-        const pinEsistente = await getPin(guildId, userId);
-
-        // 3. Instradamento alla schermata corretta
-        if (!pinEsistente) {
-            // L'utente non ha un PIN -> Schermata di REGISTRAZIONE
-            return await inviaSchermo(interaction, 'reg');
-        } else {
-            // L'utente ha già un PIN -> Schermata di VERIFICA/ACCESSO
-            return await inviaSchermo(interaction, 'verifica');
-        }
+        await interaction.reply({ 
+            content: "📱 **ScorpionPhone**\nInserisci il PIN:", 
+            components: [row1, row2], 
+            ephemeral: true 
+        });
     }
 };
