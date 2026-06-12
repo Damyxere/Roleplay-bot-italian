@@ -1,37 +1,35 @@
-const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { SlashCommandBuilder } = require('discord.js');
+const { haDocumento, getPin } = require('../dbManager');
+const { inviaSchermo } = require('../utils/viewManager');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('telefono')
-        .setDescription('Apri la tastiera del telefono'),
+        .setDescription('Accedi allo ScorpionPhone'),
 
     async execute(interaction) {
-        // Creazione tastiera
-        const row1 = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('btn_1').setLabel('1').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId('btn_2').setLabel('2').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId('btn_3').setLabel('3').setStyle(ButtonStyle.Secondary),
-        );
-        const row2 = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('btn_4').setLabel('4').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId('btn_5').setLabel('5').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId('btn_6').setLabel('6').setStyle(ButtonStyle.Secondary),
-        );
-        const row3 = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('btn_7').setLabel('7').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId('btn_8').setLabel('8').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId('btn_9').setLabel('9').setStyle(ButtonStyle.Secondary),
-        );
-        const row4 = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('btn_canc').setLabel('<').setStyle(ButtonStyle.Danger),
-            new ButtonBuilder().setCustomId('btn_0').setLabel('0').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId('btn_invia').setLabel('>').setStyle(ButtonStyle.Success),
-        );
+        const guildId = interaction.guild.id;
+        const userId = interaction.user.id;
 
-        await interaction.reply({ 
-            content: "📱 **Imposta il tuo PIN di 4 cifre:**\n`____`", 
-            components: [row1, row2, row3, row4], 
-            ephemeral: true 
-        });
+        // 1. Controllo esistenza documento (Middleware di protezione)
+        const registrato = await haDocumento(guildId, userId);
+        if (!registrato) {
+            return interaction.reply({ 
+                content: "❌ **Accesso Negato:** Devi prima creare un documento RP con `/crea-documento`.", 
+                ephemeral: true 
+            });
+        }
+
+        // 2. Controllo se l'utente ha già un PIN
+        const pinEsistente = await getPin(guildId, userId);
+
+        // 3. Instradamento alla schermata corretta
+        if (!pinEsistente) {
+            // L'utente non ha un PIN -> Schermata di REGISTRAZIONE
+            return await inviaSchermo(interaction, 'reg');
+        } else {
+            // L'utente ha già un PIN -> Schermata di VERIFICA/ACCESSO
+            return await inviaSchermo(interaction, 'verifica');
+        }
     }
 };
