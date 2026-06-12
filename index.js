@@ -1,21 +1,18 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Collection, REST, Routes, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
 const fs = require('fs');
 const http = require('http');
 const { setPin } = require('./dbManager');
 
-// 1. Server HTTP per mantenere attivo il bot su Render
+// Server per mantenere attivo il bot su Render
 const port = process.env.PORT || 10000;
-http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Bot online!');
-}).listen(port, () => console.log(`🚀 Server di mantenimento attivo sulla porta ${port}`));
+http.createServer((req, res) => res.end('Bot Online')).listen(port);
 
-const client = new Client({ 
-    intents: [GatewayIntentBits.Guilds] 
-});
-
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 client.commands = new Collection();
+
+// Cache temporanea per gli input dei PIN
+let inputUtenti = new Map();
 
 // Caricamento comandi
 const commands = [];
@@ -26,60 +23,49 @@ for (const file of commandFiles) {
     commands.push(command.data.toJSON());
 }
 
-// 2. Registrazione comandi all'avvio
 client.once('ready', async () => {
-    console.log(`🚀 Bot online come ${client.user.tag}!`);
-    try {
-        const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-        await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
-        console.log('✅ Comandi registrati globalmente!');
-    } catch (error) {
-        console.error("❌ Errore durante la registrazione comandi:", error);
-    }
+    console.log(`🚀 Bot online: ${client.user.tag}`);
+    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+    await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
 });
 
-// 3. Gestione interazioni (Slash Commands, Bottoni e Modal)
+// Gestione Interazioni (Bottoni e Comandi)
 client.on('interactionCreate', async interaction => {
     
-    // Gestione Pulsante "Crea PIN"
-    if (interaction.isButton() && interaction.customId === 'setup_pin') {
-        const modal = new ModalBuilder()
-            .setCustomId('modal_pin')
-            .setTitle('Crea il tuo PIN');
-        
-        const input = new TextInputBuilder()
-            .setCustomId('pin_val')
-            .setLabel('Inserisci 4 cifre')
-            .setStyle(TextInputStyle.Short)
-            .setMinLength(4)
-            .setMaxLength(4)
-            .setRequired(true);
-            
-        modal.addComponents(new ActionRowBuilder().addComponents(input));
-        return await interaction.showModal(modal);
-    }
+    // 1. GESTIONE TASTIERA NUMERICA (BOTTONI)
+    if (interaction.isButton() && interaction.customId.startsWith('btn_')) {
+        let pin = inputUtenti.get(interaction.user.id) || "";
+        const azione = interaction.customId.split('_')[1];
 
-    // Gestione Invio PIN dal Modal
-    if (interaction.isModalSubmit() && interaction.customId === 'modal_pin') {
-        const pin = interaction.fields.getTextInputValue('pin_val');
-        await setPin(interaction.guild.id, interaction.user.id, pin);
-        return await interaction.reply({ content: "✅ PIN creato! Ora puoi usare il telefono.", ephemeral: true });
-    }
-
-    // Gestione Slash Commands
-    if (!interaction.isChatInputCommand()) return;
-
-    const command = client.commands.get(interaction.commandName);
-    if (!command) return;
-
-    try {
-        await command.execute(interaction);
-    } catch (e) {
-        console.error("❌ Errore durante l'esecuzione del comando:", e);
-        if (interaction.replied || interaction.deferred) {
-            await interaction.editReply({ content: '❌ Errore durante l\'esecuzione.' });
+        if (azione === 'canc') {
+            pin = pin.slice(0, -1);
+        } else if (azione === 'invia') {
+            if (pin.length === 4) {
+                await setPin(interaction.guild.id, interaction.user.id, pin);
+                inputUtenti.delete(interaction.user.id);
+                return interaction.update({ content: "✅ PIN impostato con successo!", components: [] });
+            } else {
+                return interaction.reply({ content: "❌ Il PIN deve essere di 4 cifre!", ephemeral: true });
+            }
         } else {
-            await interaction.reply({ content: '❌ Errore durante l\'esecuzione.', ephemeral: true });
+            if (pin.length < 4) pin += azione;
+        }
+
+        inputUtenti.set(interaction.user.id, pin);
+        return interaction.update({ 
+            content: `📱 **Inserisci PIN:**\n\`${"*".repeat(pin.length) + "_".repeat(4 - pin.length)}\`` 
+        });
+    }
+
+    // 2. GESTIONE SLASH COMMANDS
+    if (!interaction.isChatInputCommand()) return;
+    const command = client.commands.get(interaction.commandName);
+    if (command) {
+        try {
+            await command.execute(interaction);
+        } catch (e) {
+            console.error(e);
+            await interaction.reply({ content: 'Errore esecuzione comando.', ephemeral: true });
         }
     }
 });
