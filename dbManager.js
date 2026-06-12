@@ -86,3 +86,13 @@ module.exports = {
     getPin, 
     aggiungiContatto 
 };
+const { getFirestore } = require('firebase-admin/firestore');
+const db = getFirestore();
+
+async function isPremium(guildId, userId) {
+    const doc = await db.collection('documenti').doc(`${guildId}_${userId}`).get();
+    return doc.exists && doc.data().premium === true;
+}
+
+// Esporta anche isPremium insieme alle altre funzioni
+module.exports = { haDocumento, setPin, getPin, isPremium };
