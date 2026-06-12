@@ -1,80 +1,77 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
 const fs = require('fs');
-const http = require('http');
-const { haDocumento, setPin } = require('./dbManager');
-
-// Server di mantenimento (Render)
-const port = process.env.PORT || 10000;
-http.createServer((req, res) => res.end('Bot Online')).listen(port);
+const { haDocumento, setPin, getPin } = require('./dbManager');
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-client.commands = new Collection();
-let inputUtenti = new Map(); // Cache per tastiera PIN
-
-// Caricamento comandi
-const commands = [];
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
-for (const file of commandFiles) {
-    const command = require(`./commands/${file}`);
-    client.commands.set(command.data.name, command);
-    commands.push(command.data.toJSON());
-}
-
-client.once('ready', async () => {
-    console.log(`🚀 Bot online: ${client.user.tag}`);
-    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-    await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
-});
+let statiUtenti = new Map(); // Gestisce la fase di registrazione/accesso
 
 client.on('interactionCreate', async interaction => {
-    // 1. GESTIONE BOTTONI TASTIERA PIN
+    // 1. BLOCCO DI SICUREZZA (Middleware)
+    if (interaction.isChatInputCommand() && interaction.commandName !== 'crea-documento') {
+        if (!(await haDocumento(interaction.guild.id, interaction.user.id))) {
+            return interaction.reply({ content: "❌ Devi prima creare un documento RP!", ephemeral: true });
+        }
+    }
+
+    // 2. GESTIONE TASTIERA (PIN E ACCESSO)
     if (interaction.isButton() && interaction.customId.startsWith('btn_')) {
-        let pin = inputUtenti.get(interaction.user.id) || "";
+        const userId = interaction.user.id;
+        let stato = statiUtenti.get(userId) || { fase: 'reg_1', pin1: "", pin2: "", buffer: "" };
         const azione = interaction.customId.split('_')[1];
 
         if (azione === 'canc') {
-            pin = pin.slice(0, -1);
+            stato.buffer = stato.buffer.slice(0, -1);
         } else if (azione === 'invia') {
-            if (pin.length === 4) {
-                await setPin(interaction.guild.id, interaction.user.id, pin);
-                inputUtenti.delete(interaction.user.id);
-                return interaction.update({ content: "✅ PIN impostato correttamente!", components: [] });
+            // LOGICA REGISTRAZIONE
+            if (stato.fase === 'reg_1') {
+                stato.pin1 = stato.buffer;
+                stato.buffer = "";
+                stato.fase = 'reg_2';
+                return interaction.update({ content: "📱 **Ripeti il PIN per confermare:**" });
+            } else if (stato.fase === 'reg_2') {
+                if (stato.buffer === stato.pin1) {
+                    await setPin(interaction.guild.id, userId, stato.buffer);
+                    statiUtenti.delete(userId);
+                    return interaction.update({ content: "✅ **Telefono configurato con successo!**", components: [] });
+                }
+                return interaction.reply({ content: "❌ I PIN non corrispondono!", ephemeral: true });
+            } 
+            // LOGICA ACCESSO
+            else if (stato.fase === 'accesso') {
+                const salvato = await getPin(interaction.guild.id, userId);
+                if (stato.buffer === salvato) {
+                    return mostraMenuApp(interaction);
+                }
+                return interaction.reply({ content: "❌ PIN errato!", ephemeral: true });
             }
-            return interaction.reply({ content: "❌ Il PIN deve essere di 4 cifre!", ephemeral: true });
         } else {
-            if (pin.length < 4) pin += azione;
-        }
-        inputUtenti.set(interaction.user.id, pin);
-        return interaction.update({ content: `📱 **Inserisci PIN:**\n\`${"*".repeat(pin.length) + "_".repeat(4 - pin.length)}\`` });
-    }
-
-    // 2. CONTROLLO DOCUMENTO (Middleware di sicurezza)
-    if (interaction.isChatInputCommand()) {
-        const isAdmin = interaction.member.permissions.has('Administrator');
-        
-        // Se non è l'admin e non è il comando di creazione, blocchiamo tutto
-        if (interaction.commandName !== 'crea-documento' && !isAdmin) {
-            const registrato = await haDocumento(interaction.guild.id, interaction.user.id);
-            if (!registrato) {
-                return interaction.reply({ 
-                    content: "❌ **Accesso Negato:** Devi prima creare un documento RP con `/crea-documento` per iniziare.", 
-                    ephemeral: true 
-                });
-            }
+            if (stato.buffer.length < 4) stato.buffer += azione;
         }
 
-        // 3. ESECUZIONE COMANDO
-        const command = client.commands.get(interaction.commandName);
-        if (command) {
-            try {
-                await command.execute(interaction);
-            } catch (e) {
-                console.error(e);
-                await interaction.reply({ content: 'Errore durante l\'esecuzione.', ephemeral: true });
-            }
-        }
+        statiUtenti.set(userId, stato);
+        return interaction.update({ content: `📱 **Inserisci PIN:**\n\`${"*".repeat(stato.buffer.length)}\`` });
     }
 });
+
+// Funzione per mostrare il menu (ScorpionPhone)
+async function mostraMenuApp(interaction) {
+    const embed = new EmbedBuilder()
+        .setTitle('📱 SCORPION PHONE')
+        .setImage('URL_IMMAGINE_TELEFONO_CHE_ABBIAMO_CREATO')
+        .setDescription('Seleziona un\'app dal menu:');
+
+    const menu = new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+            .setCustomId('menu_app')
+            .setOptions([
+                { label: 'Rubrica', value: 'rubrica' },
+                { label: 'Whatita', value: 'whatita' },
+                { label: 'Banca', value: 'banca' },
+                { label: 'Calcolatrice', value: 'calc' }
+            ])
+    );
+    return interaction.update({ embeds: [embed], components: [menu] });
+}
 
 client.login(process.env.DISCORD_TOKEN);
