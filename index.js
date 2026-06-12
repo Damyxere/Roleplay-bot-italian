@@ -2,17 +2,15 @@ require('dotenv').config();
 const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
 const fs = require('fs');
 const http = require('http');
-const { setPin } = require('./dbManager');
+const { haDocumento, setPin } = require('./dbManager');
 
-// Server per mantenere attivo il bot su Render
+// Server di mantenimento (Render)
 const port = process.env.PORT || 10000;
 http.createServer((req, res) => res.end('Bot Online')).listen(port);
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 client.commands = new Collection();
-
-// Cache temporanea per gli input dei PIN
-let inputUtenti = new Map();
+let inputUtenti = new Map(); // Cache per tastiera PIN
 
 // Caricamento comandi
 const commands = [];
@@ -29,10 +27,8 @@ client.once('ready', async () => {
     await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
 });
 
-// Gestione Interazioni (Bottoni e Comandi)
 client.on('interactionCreate', async interaction => {
-    
-    // 1. GESTIONE TASTIERA NUMERICA (BOTTONI)
+    // 1. GESTIONE BOTTONI TASTIERA PIN
     if (interaction.isButton() && interaction.customId.startsWith('btn_')) {
         let pin = inputUtenti.get(interaction.user.id) || "";
         const azione = interaction.customId.split('_')[1];
@@ -43,29 +39,40 @@ client.on('interactionCreate', async interaction => {
             if (pin.length === 4) {
                 await setPin(interaction.guild.id, interaction.user.id, pin);
                 inputUtenti.delete(interaction.user.id);
-                return interaction.update({ content: "✅ PIN impostato con successo!", components: [] });
-            } else {
-                return interaction.reply({ content: "❌ Il PIN deve essere di 4 cifre!", ephemeral: true });
+                return interaction.update({ content: "✅ PIN impostato correttamente!", components: [] });
             }
+            return interaction.reply({ content: "❌ Il PIN deve essere di 4 cifre!", ephemeral: true });
         } else {
             if (pin.length < 4) pin += azione;
         }
-
         inputUtenti.set(interaction.user.id, pin);
-        return interaction.update({ 
-            content: `📱 **Inserisci PIN:**\n\`${"*".repeat(pin.length) + "_".repeat(4 - pin.length)}\`` 
-        });
+        return interaction.update({ content: `📱 **Inserisci PIN:**\n\`${"*".repeat(pin.length) + "_".repeat(4 - pin.length)}\`` });
     }
 
-    // 2. GESTIONE SLASH COMMANDS
-    if (!interaction.isChatInputCommand()) return;
-    const command = client.commands.get(interaction.commandName);
-    if (command) {
-        try {
-            await command.execute(interaction);
-        } catch (e) {
-            console.error(e);
-            await interaction.reply({ content: 'Errore esecuzione comando.', ephemeral: true });
+    // 2. CONTROLLO DOCUMENTO (Middleware di sicurezza)
+    if (interaction.isChatInputCommand()) {
+        const isAdmin = interaction.member.permissions.has('Administrator');
+        
+        // Se non è l'admin e non è il comando di creazione, blocchiamo tutto
+        if (interaction.commandName !== 'crea-documento' && !isAdmin) {
+            const registrato = await haDocumento(interaction.guild.id, interaction.user.id);
+            if (!registrato) {
+                return interaction.reply({ 
+                    content: "❌ **Accesso Negato:** Devi prima creare un documento RP con `/crea-documento` per iniziare.", 
+                    ephemeral: true 
+                });
+            }
+        }
+
+        // 3. ESECUZIONE COMANDO
+        const command = client.commands.get(interaction.commandName);
+        if (command) {
+            try {
+                await command.execute(interaction);
+            } catch (e) {
+                console.error(e);
+                await interaction.reply({ content: 'Errore durante l\'esecuzione.', ephemeral: true });
+            }
         }
     }
 });
