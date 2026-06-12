@@ -1,41 +1,47 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits, REST, Routes } = require('discord.js');
-const { haDocumento, isPremium } = require('./dbManager');
-
 const http = require('http');
-http.createServer((req, res) => {
-    res.end("Bot Online");
-}).listen(process.env.PORT || 3000);
+const { getPin } = require('./dbManager');
+
+// Server per Render
+http.createServer((req, res) => res.end("Bot Online")).listen(process.env.PORT || 3000);
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-
-// Registrazione comandi all'avvio
-const commands = [{ name: 'telefono', description: 'Avvia il telefono' }];
-const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+const bufferPin = new Map(); // Tiene in memoria i tasti premuti
 
 client.once('ready', async () => {
-    try {
-        await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
-        console.log(`✅ Bot pronto e comandi registrati: ${client.user.tag}`);
-    } catch (e) { console.error("❌ Errore registrazione:", e); }
+    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+    await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { 
+        body: [{ name: 'telefono', description: 'Avvia il telefono' }] 
+    });
+    console.log(`✅ Bot pronto: ${client.user.tag}`);
 });
 
 client.on('interactionCreate', async interaction => {
-    if (!interaction.isChatInputCommand()) return;
+    if (interaction.isChatInputCommand() && interaction.commandName === 'telefono') {
+        return require('./commands/telefono').execute(interaction);
+    }
 
-    if (interaction.commandName === 'telefono') {
-        // Uso deferReply per evitare il timeout di Discord
-        await interaction.deferReply({ ephemeral: true });
-        
-        try {
-            const presente = await haDocumento(interaction.guild.id, interaction.user.id);
-            if (presente) {
-                await interaction.editReply("📱 Telefono avviato con successo!");
+    if (interaction.isButton()) {
+        const userId = interaction.user.id;
+        let input = bufferPin.get(userId) || "";
+
+        if (interaction.customId === 'btn_invia') {
+            const pinCorretto = await getPin(interaction.guild.id, userId);
+            if (input === pinCorretto) {
+                await interaction.update({ content: "✅ PIN Corretto! Telefono sbloccato.", components: [] });
             } else {
-                await interaction.editReply("❌ Nessun documento trovato nel database.");
+                await interaction.reply({ content: "❌ PIN Errato!", ephemeral: true });
             }
-        } catch (e) {
-            await interaction.editReply("⚠️ Errore durante la connessione al database.");
+            bufferPin.delete(userId);
+        } else if (interaction.customId === 'btn_canc') {
+            bufferPin.delete(userId);
+            await interaction.update({ content: "📱 PIN resettato. Inserisci nuovamente:", components: interaction.message.components });
+        } else {
+            const numero = interaction.customId.split('_')[1];
+            input += numero;
+            bufferPin.set(userId, input);
+            await interaction.update({ content: `📱 Inserimento: ${"*".repeat(input.length)}`, components: interaction.message.components });
         }
     }
 });
