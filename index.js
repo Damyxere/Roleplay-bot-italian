@@ -1,17 +1,26 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Collection } = require('discord.js');
-const fs = require('fs');
+const { Client, GatewayIntentBits, REST, Routes } = require('discord.js');
 const { inviaSchermo } = require('./utils/viewManager');
-const { isPremium, getPin, setPin } = require('./dbManager');
+const { haDocumento, isPremium, getPin, setPin } = require('./dbManager');
 
+// Inizializzazione client
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-let statiUtenti = new Map(); 
+
+// Mappa per gestire gli stati dei PIN in memoria
+const statiUtenti = new Map();
+
+client.on('ready', () => {
+    console.log(`Bot avviato come ${client.user.tag}!`);
+});
 
 client.on('interactionCreate', async interaction => {
-    // 1. GESTIONE COMANDI SLASH (es. /telefono)
+    // 1. GESTIONE COMANDI (Slash Commands)
     if (interaction.isChatInputCommand()) {
-        const command = client.commands.get(interaction.commandName);
-        if (command) await command.execute(interaction);
+        // Assicurati di caricare i comandi correttamente
+        if (interaction.commandName === 'telefono') {
+            const { execute } = require('./commands/telefono');
+            await execute(interaction);
+        }
     }
 
     // 2. GESTIONE BOTTONI (Tastierino PIN)
@@ -24,6 +33,7 @@ client.on('interactionCreate', async interaction => {
             const pinSalvato = await getPin(interaction.guild.id, userId);
             if (stato.buffer === pinSalvato) {
                 const premium = await isPremium(interaction.guild.id, userId);
+                statiUtenti.delete(userId); // Pulizia memoria
                 return await inviaSchermo(interaction, 'home', premium);
             }
             return interaction.reply({ content: "❌ PIN Errato!", ephemeral: true });
@@ -32,6 +42,7 @@ client.on('interactionCreate', async interaction => {
         } else {
             if (stato.buffer.length < 4) stato.buffer += azione;
         }
+
         statiUtenti.set(userId, stato);
         return interaction.update({ content: `Inserimento: ${"*".repeat(stato.buffer.length)}` });
     }
@@ -42,12 +53,12 @@ client.on('interactionCreate', async interaction => {
         const premiumApps = ['insta', 'casino'];
 
         if (premiumApps.includes(scelta)) {
-            if (!(await isPremium(interaction.guild.id, interaction.user.id))) {
-                return interaction.reply({ content: "🚫 App Premium!", ephemeral: true });
+            const premium = await isPremium(interaction.guild.id, interaction.user.id);
+            if (!premium) {
+                return interaction.reply({ content: "🚫 **Accesso Negato:** Questa app è riservata ai membri Premium!", ephemeral: true });
             }
         }
-        // Qui carichi la logica dell'app scelta
-        interaction.reply({ content: `Hai aperto: ${scelta}`, ephemeral: true });
+        return interaction.reply({ content: `📱 Hai aperto: **${scelta.toUpperCase()}**`, ephemeral: true });
     }
 });
 
