@@ -1,3 +1,12 @@
+// Aggiungi questo in cima al tuo index.js
+const http = require('http');
+http.createServer((req, res) => {
+    res.write("Il bot e' online!");
+    res.end();
+}).listen(process.env.PORT || 3000);
+
+// ... il resto del tuo codice (client.login, ecc.)
+
 require('dotenv').config();
 const { Client, GatewayIntentBits, REST, Routes } = require('discord.js');
 const { inviaSchermo } = require('./utils/viewManager');
