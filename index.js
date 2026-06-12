@@ -2,6 +2,11 @@ require('dotenv').config();
 const { Client, GatewayIntentBits, REST, Routes } = require('discord.js');
 const { haDocumento, isPremium } = require('./dbManager');
 
+const http = require('http');
+http.createServer((req, res) => {
+    res.end("Bot Online");
+}).listen(process.env.PORT || 3000);
+
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 // Registrazione comandi all'avvio
