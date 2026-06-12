@@ -1,8 +1,8 @@
 const { initializeApp, cert } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
 
-// Assicurati di avere il file serviceAccountKey.json nella cartella del progetto
-const serviceAccount = require('./serviceAccountKey.json');
+// Modifica questa parte: non cercare il file, leggi la variabile d'ambiente
+const serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG);
 
 initializeApp({
   credential: cert(serviceAccount)
@@ -10,6 +10,7 @@ initializeApp({
 
 const db = getFirestore();
 
+// ... il resto del tuo codice rimane uguale
 // Funzioni di utilità
 async function haDocumento(guildId, userId) {
     const doc = await db.collection('documenti').doc(`${guildId}_${userId}`).get();
