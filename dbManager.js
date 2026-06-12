@@ -1,7 +1,12 @@
 const { initializeApp, cert } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
 
-// Modifica questa parte: non cercare il file, leggi la variabile d'ambiente
+// Controllo di sicurezza: se la variabile non c'è, il bot ti avvisa subito
+if (!process.env.FIREBASE_CONFIG) {
+    console.error("ERRORE: La variabile d'ambiente FIREBASE_CONFIG non è impostata su Render!");
+    process.exit(1);
+}
+
 const serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG);
 
 initializeApp({
@@ -9,6 +14,7 @@ initializeApp({
 });
 
 const db = getFirestore();
+// ... resto del codice
 
 // ... il resto del tuo codice rimane uguale
 // Funzioni di utilità
